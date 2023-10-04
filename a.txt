@@ -1,0 +1,70 @@
+# import sys
+# from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView
+# from PyQt5.QtCore import Qt
+# import psycopg2
+#
+#
+# class TablesWindow(QWidget):
+#     def __init__(self, connection):
+#         super().__init__()
+#         self.setWindowTitle('Tables')
+#         self.setGeometry(0, 0, 1000, 800)
+#         self.setStyleSheet("background-color: #121212; color: #ffffff;")
+#
+#         cursor = connection.cursor()
+#         sql_query = "SELECT tablename FROM pg_tables WHERE schemaname='public';"
+#         cursor.execute(sql_query)
+#         names = cursor.fetchall()
+#         table_names = [name[0] for name in names]
+#         print(table_names)
+#
+#         layout = QVBoxLayout(self)
+#         layout.setAlignment(Qt.AlignTop)
+#         self.table_combobox = QComboBox(self)
+#         self.table_combobox.addItems(table_names)
+#         self.table_combobox.setStyleSheet('font-size: 30px; padding: 0px 200px; background-color: gray;')
+#         layout.addWidget(self.table_combobox)
+#
+#         self.table_widget = QTableWidget(self)
+#         layout.addWidget(self.table_widget)
+#
+#         self.table_combobox.currentIndexChanged.connect(lambda: self.on_combobox_change(connection))
+#         self.setLayout(layout)
+#
+#     def on_combobox_change(self, connection):
+#         selected_table = self.table_combobox.currentText()
+#         print(selected_table)
+#         # Выполнить запрос к базе данных для выбранной таблицы
+#         cursor = connection.cursor()
+#         sql_query = f"SELECT * FROM {selected_table};"
+#         cursor.execute(sql_query)
+#         data = cursor.fetchall()
+#
+#         # Установить количество строк и столбцов в таблице
+#         self.table_widget.setRowCount(0)
+#         self.table_widget.setColumnCount(len(data[0]) if data else 0)
+#
+#         # Заполнить таблицу данными из запроса
+#         if data:
+#             # Устанавливаем названия столбцов в таблицу
+#             column_names = [desc[0] for desc in cursor.description]
+#             self.table_widget.setHorizontalHeaderLabels(column_names)
+#
+#             # Устанавливаем стили для заголовков столбцов
+#             header = self.table_widget.horizontalHeader()
+#             header.setStyleSheet("QHeaderView::section { background-color: #404040; color: #ffffff; }")
+#             vertical_header = self.table_widget.verticalHeader()
+#             vertical_header.setStyleSheet("QHeaderView::section { background-color: #404040; color: #ffffff; }")
+#
+#
+#             for row_num, row_data in enumerate(data):
+#                 self.table_widget.insertRow(row_num)
+#                 for col_num, col_data in enumerate(row_data):
+#                     item = QTableWidgetItem(str(col_data))
+#                     self.table_widget.setItem(row_num, col_num, item)
+#                     header = self.table_widget.horizontalHeader()
+#                     header.setSectionResizeMode(QHeaderView.Stretch)
+#
+#     # selected_table = self.table_combobox.currentText()
+#     # self.table_combobox.currentIndexChanged.connect(self.on_combobox_change)
+
