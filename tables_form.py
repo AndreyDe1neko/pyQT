@@ -1,43 +1,96 @@
 import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView
 from PyQt5.QtCore import Qt
-import psycopg2
+from PyQt5 import QtGui  # Добавьте этот импорт
+
 
 class LazyLoadTableWidget(QTableWidget):
+
     def __init__(self, connection, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.connection = connection
         self.batch_size = 100  # Кількість записів, які завантажуються за один раз
         self.loaded_rows = 0
-        self.loading = False
+        self.verticalHeader().setHidden(True)
+        # self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        # self.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)  # Растягиваем столбцы под содержимое
+
+        # Добавляем последний столбец, который будет растягиваться по ширине таблицы
+        last_column = self.columnCount()
+        print(last_column)
+        self.insertColumn(last_column)
+        self.horizontalHeader().setSectionResizeMode(last_column, QHeaderView.Stretch)
+
+        header_style = "QHeaderView::section { background-color: gray; color: white; font-size: 18px;}"
+        self.setStyleSheet(header_style)
+        # self.setStyleSheet()
+        # self.loading = False
         self.load_more_data()
 
     def load_more_data(self):
-        if not self.loading:
-            self.loading = True
-            cursor = self.connection.cursor()
-            selected_table = self.current_table_name()
-            sql_query = f"SELECT * FROM {selected_table} OFFSET {self.loaded_rows} LIMIT {self.batch_size};"
-            cursor.execute(sql_query)
-            data = cursor.fetchall()
+        # if not self.loading:
+        #     self.loading = True
+        cursor = self.connection.cursor()
+        selected_table = self.current_table_name()
+        sql_query = f"SELECT * FROM {selected_table} OFFSET {self.loaded_rows} LIMIT {self.batch_size};"
+        cursor.execute(sql_query)
+        data = cursor.fetchall()
 
-            if data:
-                if self.loaded_rows == 0:
-                    column_names = [desc[0] for desc in cursor.description]
-                    self.setColumnCount(len(column_names))
-                    self.setHorizontalHeaderLabels(column_names)
-                print(data)
-                for row_data in data:
-                    row_position = self.loaded_rows
+        translation_dict = {
+            "id_server": "ID сервера",
+            "url": "URL",
+            "server_status": "Статус сервера",
 
-                    self.insertRow(row_position)
-                    for col_num, col_data in enumerate(row_data):
-                        item = QTableWidgetItem(str(col_data))
-                        self.setItem(row_position, col_num, item)
+            "id_station": "ID станції",
+            "city": "Місто",
+            "name_station": "Назва станції",
+            "status_station": "Статус станції",
+            "id_saveecobot": "ID збереженого екобота",
 
-                    self.loaded_rows += 1
+            "longitude": "Довгота",
+            "latitude": "Широта",
 
-                self.loading = False
+            "user_name": "Ім'я користувача",
+
+            "id_category": "ID категорії",
+            "designation": "Позначення категорії",
+
+            "id_measured_unit": "ID одиниці вимірювання",
+            "title": "Заголовок",
+            "unit": "Одиниця вимірювання",
+
+            "bottom_border": "Нижня границя",
+            "upper_border": "Верхня границя",
+
+            "messages": "Повідомлення",
+            "order_mqtt_unit": "Порядок одиниці вимірювання",
+
+            "id_measument": "ID вимірювання",
+            "time_meas": "Час вимірювання",
+            "value_meas": "Значення вимірювання"
+        }
+
+        if data:
+            if self.loaded_rows == 0:
+                column_names = [desc[0] for desc in cursor.description]
+                # Перетворення назв стовпців за допомогою словника
+                translated_column_names = [translation_dict.get(col, col) for col in column_names]
+                self.setColumnCount(len(translated_column_names))
+                self.setHorizontalHeaderLabels(translated_column_names)
+
+            for row_data in data:
+                row_position = self.loaded_rows
+
+                self.insertRow(row_position)
+                for col_num, col_data in enumerate(row_data):
+                    item = QTableWidgetItem(str(col_data))
+                    item.setFont(QtGui.QFont("Arial", 14))  # Установите желаемый размер шрифта (например, 24)
+                    self.setItem(row_position, col_num, item)
+
+                self.loaded_rows += 1
+
+                # self.loading = False
 
     def current_table_name(self):
         return self.parent().table_combobox.currentText()
@@ -48,10 +101,11 @@ class LazyLoadTableWidget(QTableWidget):
         scrollbar = self.verticalScrollBar()
         max_value = scrollbar.maximum()
         current_value = scrollbar.value()
-
+        print(current_value)
         # Якщо користувач долистав до кінця таблиці
         if current_value >= max_value:
             self.load_more_data()
+
 
 class TablesWindow(QWidget):
     def __init__(self, connection):
