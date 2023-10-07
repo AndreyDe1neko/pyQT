@@ -1,6 +1,7 @@
 import sys
+from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QTableWidget, \
-    QTableWidgetItem
+    QTableWidgetItem, QMessageBox, QGraphicsDropShadowEffect
 from PyQt5.QtCore import Qt
 import psycopg2
 from tables_form import TablesWindow
@@ -34,21 +35,31 @@ class AuthWindow(QWidget):
         self.login_button.clicked.connect(self.login_button_click_event)
         self.login_button.setStyleSheet('''
             QPushButton {
-                background-color: #007BFF;
+                background-color: #732370;
                 color: white;
                 border: none;
                 padding: 10px 20px;
                 border-radius: 15px;
                 font-size: 14px;
+                box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5); /* Додайте тінь */
             }
             QPushButton:hover {
-                background-color: #0056b3;
-                box-shadow: 5px 5px 5px 5px blue;
+                background-color: #9551a6;
+                }
+            QPushButton:pressed {
+                background-color: #43185d;    
             }
         ''')
         # self.exit_button = QPushButton('Exit', self)
         # self.exit_button.clicked.connect(self.close_window)
         # self.exit_button.setStyleSheet('font-size: 20px; padding: 10px 20px;')
+
+        # shadow_effect = QGraphicsDropShadowEffect(self)
+        # shadow_effect.setBlurRadius(20)  # Радіус розмиття тіні
+        # shadow_effect.setColor(QColor(255, 255, 255))  # Колір тіні та її прозорість
+        # shadow_effect.setXOffset(0)  # Горизонтальний зсув тіні
+        # shadow_effect.setYOffset(10)
+        # self.login_button.setGraphicsEffect(shadow_effect)
 
         layout = QVBoxLayout(self)
         layout.addWidget(self.label_login)
@@ -77,9 +88,11 @@ class AuthWindow(QWidget):
 
             self.tables_window = TablesWindow(connection)  # Создаем объект TablesWindow
             self.tables_window.show()
+            self.close()
         except psycopg2.Error as e:
-            print("Error: Unable to connect to the database")
-            print(e)
+            alert = QMessageBox()
+            alert.setText("email або пароль вказано неправильно")
+            result = alert.exec_()
 
 
 if __name__ == '__main__':

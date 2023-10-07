@@ -1,7 +1,18 @@
-import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView
 from PyQt5.QtCore import Qt
 from PyQt5 import QtGui  # Добавьте этот импорт
+
+table_translation_dict = {
+    "mqtt_server": "Сервер MQTT",
+    "station": "Станція",
+    "coordinates": "Координати",
+    "favourite": "Улюблене",
+    "category": "Категорія",
+    "measured_unit": "Одиниця вимірювання",
+    "optimal_value": "Оптимальні значення",
+    "mqtt_message_unit": "Повідомлення MQTT",
+    "measument": "Вимірювання"
+}
 
 
 class LazyLoadTableWidget(QTableWidget):
@@ -22,17 +33,31 @@ class LazyLoadTableWidget(QTableWidget):
         self.insertColumn(last_column)
         self.horizontalHeader().setSectionResizeMode(last_column, QHeaderView.Stretch)
 
-        header_style = "QHeaderView::section { background-color: gray; color: white; font-size: 18px;}"
+        header_style = "QHeaderView::section { background-color: gray; color: white; font-size: 18px; font-weight: 900;}"
         self.setStyleSheet(header_style)
         # self.setStyleSheet()
         # self.loading = False
         self.load_more_data()
 
     def load_more_data(self):
-        # if not self.loading:
-        #     self.loading = True
+
+        table_translation_dict = {
+            "mqtt_server": "Сервер MQTT",
+            "station": "Станція",
+            "coordinates_view": "Координати",
+            "favourite_view": "Улюблене",
+            "category": "Категорія",
+            "measured_unit": "Одиниця вимірювання",
+            "optimal_value_view": "Оптимальні значення",
+            "mqtt_message_unit_view": "Повідомлення MQTT",
+            "measument_view": "Вимірювання"
+        }
+
         cursor = self.connection.cursor()
         selected_table = self.current_table_name()
+        for k, v in table_translation_dict.items():
+            if v == selected_table:
+                selected_table = k
         sql_query = f"SELECT * FROM {selected_table} OFFSET {self.loaded_rows} LIMIT {self.batch_size};"
         cursor.execute(sql_query)
         data = cursor.fetchall()
@@ -50,7 +75,8 @@ class LazyLoadTableWidget(QTableWidget):
 
             "longitude": "Довгота",
             "latitude": "Широта",
-
+            "coordinate": "Координати",
+            "category": "Категорії",
             "user_name": "Ім'я користувача",
 
             "id_category": "ID категорії",
@@ -65,7 +91,7 @@ class LazyLoadTableWidget(QTableWidget):
 
             "messages": "Повідомлення",
             "order_mqtt_unit": "Порядок одиниці вимірювання",
-
+            "measured_unit": "Вимірювальна одиниця",
             "id_measument": "ID вимірювання",
             "time_meas": "Час вимірювання",
             "value_meas": "Значення вимірювання"
@@ -113,21 +139,45 @@ class TablesWindow(QWidget):
         self.setWindowTitle('Tables')
         self.setGeometry(0, 0, 1000, 800)
         self.setStyleSheet("background-color: #121212; color: #ffffff;")
-
         self.connection = connection
 
         cursor = connection.cursor()
         sql_query = "SELECT tablename FROM pg_tables WHERE schemaname='public';"
         cursor.execute(sql_query)
         names = cursor.fetchall()
-        self.table_names = [name[0] for name in names]
+
+        self.table_names = [table_translation_dict.get(name[0]) for name in names]
 
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignTop)
 
         self.table_combobox = QComboBox(self)
         self.table_combobox.addItems(self.table_names)
-        self.table_combobox.setStyleSheet('font-size: 30px; padding: 0px 200px; background-color: gray;')
+        self.table_combobox.setStyleSheet("""
+    QComboBox {
+        background-color: #2E2E2E;
+        color: #FFFFFF;
+        border: 1px solid #555555;
+        padding: 5px;
+        font-size: 16px;
+    }
+    QComboBox QAbstractItemView {
+        background-color: #2E2E2E;
+        color: #FFFFFF;
+        selection-background-color: #7a506f; /* Фіолетовий колір фону при виборі */
+    }
+    QComboBox QAbstractItemView::item {
+        background-color: #2E2E2E;
+        color: #FFFFFF;
+    }
+    QComboBox QAbstractItemView::item:hover {
+        background-color: #7a506f; /* Фіолетовий колір фону при наведенні */
+    }
+    QComboBox::item:selected {
+        background-color: #4CAF50;
+    }
+""")
+        self.table_combobox.setFixedWidth(200)
         self.table_combobox.currentIndexChanged.connect(self.on_combobox_change)
         layout.addWidget(self.table_combobox)
 
