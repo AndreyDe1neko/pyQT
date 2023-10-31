@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtGui import QColor
 from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QTableWidget, \
-    QTableWidgetItem, QMessageBox, QGraphicsDropShadowEffect
+    QTableWidgetItem, QMessageBox, QDesktopWidget
 from PyQt5.QtCore import Qt
 import psycopg2
 from tables_form import TablesWindow
@@ -15,6 +15,13 @@ class AuthWindow(QWidget):
         self.setWindowTitle('Auth')
         self.setGeometry(0, 0, 500, 300)
         self.setStyleSheet("background-color: #121212; color: #ffffff;")
+
+        #По центру
+        screen = QDesktopWidget().screenGeometry()
+        window_size = self.geometry()
+        x = int((screen.width() - window_size.width()) // 2)
+        y = int((screen.height() - window_size.height()) // 3)
+        self.move(x, y)
 
         self.label_login = QLabel('Нікнейм:', self)
         self.label_login.setStyleSheet('font-size: 20px; padding: 5px; text-align: center;')
@@ -37,7 +44,6 @@ class AuthWindow(QWidget):
             QPushButton {
                 background-color: #732370;
                 color: white;
-                border: none;
                 padding: 10px 20px;
                 border-radius: 15px;
                 font-size: 14px;
@@ -45,22 +51,13 @@ class AuthWindow(QWidget):
             }
             QPushButton:hover {
                 background-color: #9551a6;
+                
                 }
             QPushButton:pressed {
-                background-color: #43185d;    
+                background-color: #43185d;  
+                border: 2px solid #9551a6;  
             }
         ''')
-        # self.exit_button = QPushButton('Exit', self)
-        # self.exit_button.clicked.connect(self.close_window)
-        # self.exit_button.setStyleSheet('font-size: 20px; padding: 10px 20px;')
-
-        # shadow_effect = QGraphicsDropShadowEffect(self)
-        # shadow_effect.setBlurRadius(20)  # Радіус розмиття тіні
-        # shadow_effect.setColor(QColor(255, 255, 255))  # Колір тіні та її прозорість
-        # shadow_effect.setXOffset(0)  # Горизонтальний зсув тіні
-        # shadow_effect.setYOffset(10)
-        # self.login_button.setGraphicsEffect(shadow_effect)
-
         layout = QVBoxLayout(self)
         layout.addWidget(self.label_login)
         layout.addWidget(self.login_textbox)
@@ -73,6 +70,7 @@ class AuthWindow(QWidget):
         layout.setContentsMargins(100, 100, 100, 100)
 
         self.setLayout(layout)
+
 
     def close_window(self):
         return self.close()
@@ -92,7 +90,7 @@ class AuthWindow(QWidget):
         except psycopg2.Error as e:
             alert = QMessageBox()
             alert.setText("email або пароль вказано неправильно")
-            result = alert.exec_()
+            # result = alert.exec_()
 
 
 if __name__ == '__main__':
