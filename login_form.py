@@ -12,7 +12,7 @@ class AuthWindow(QWidget):
         super().__init__()
         self.tables_window = None
 
-        self.setWindowTitle('Auth')
+        self.setWindowTitle('Авторизація')
         self.setGeometry(0, 0, 500, 300)
         self.setStyleSheet("background-color: #121212; color: #ffffff;")
 

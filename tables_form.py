@@ -241,7 +241,7 @@ class TablesWindow(QWidget):
     def __init__(self, connection):
         super().__init__()
         self.power_bi_app = None
-        self.setWindowTitle('Tables')
+        self.setWindowTitle('Засоби монітору якості повітря')
         self.setGeometry(0, 0, 1000, 800)
         self.setStyleSheet("background-color: #121212; color: #ffffff;")
         self.connection = connection
@@ -256,6 +256,7 @@ class TablesWindow(QWidget):
         self.power_bi_app_first_graphic = PowerBIApp_first_graphic(connection)
         self.power_bi_app_second = PowerBIApp_second(connection)
         self.power_like_bi_app = PowerLikeBIApp(connection)
+        self.power_bi_report_count_values = PowerBIReportCountValues(connection)
 
         cursor = connection.cursor()
         sql_query = "SELECT tablename FROM pg_tables WHERE schemaname='public';"
@@ -277,27 +278,38 @@ class TablesWindow(QWidget):
         self.table_widget = LazyLoadTableWidget(connection, self)
         layout.addWidget(self.table_widget, 1, 0, 1, 2)
 
-        self.report_like_BI_button = QPushButton('Звіт з можливістю друкувати та ковертувати в pdf', self)
+        self.report_like_BI_button = QPushButton('Звіт писок підключених станцій з можливістю друкувати та ковертувати в pdf', self)
         self.report_like_BI_button.clicked.connect(self.report_like_bi_function)
         self.report_like_BI_button.setStyleSheet(default_for_buttons)
         layout.addWidget(self.report_like_BI_button, 2, 0)
 
-        self.report_BI_button = QPushButton('PowerBI Звіт', self)
+        self.report_BI_button = QPushButton('Список підключених станцій PowerBI', self)
         self.report_BI_button.clicked.connect(self.report_bi_function)
         self.report_BI_button.setStyleSheet(default_for_buttons)
         layout.addWidget(self.report_BI_button, 2, 1)
 
-        self.connected_stations_without_dublicate_button = QPushButton('PowerBI Звіт з графіком', self)
+        self.connected_stations_without_dublicate_button = QPushButton('Результати вимірювань станції за часовий період PowerBI', self)
         self.connected_stations_without_dublicate_button.clicked.connect(self.report_bi_second_function)
         self.connected_stations_without_dublicate_button.setStyleSheet(default_for_buttons)
         layout.addWidget(self.connected_stations_without_dublicate_button, 3, 0)
 
-        self.first_graphic_button = QPushButton('Звіт з графіком', self)
+        self.first_graphic_button = QPushButton('Результати вимірювань станції за часовий період', self)
         self.first_graphic_button.clicked.connect(self.report_graphic_like_bi_function)
         self.first_graphic_button.setStyleSheet(default_for_buttons)
         layout.addWidget(self.first_graphic_button, 3, 1)
 
+        self.count_values_view_button = QPushButton('Графічне зображення отриманих результатів', self)
+        self.count_values_view_button.clicked.connect(self.report_count_values_function)
+        self.count_values_view_button.setStyleSheet(default_for_buttons)
+        layout.addWidget(self.count_values_view_button, 4, 0, 1, 2)
+
         self.setLayout(layout)
+
+    def report_count_values_function(self) -> None:
+        try:
+            self.power_bi_report_count_values.show()
+        except Exception as e:
+            print(f"Error in report_BI_function: {e}")
 
     def report_bi_function(self) -> None:
         try:
@@ -332,6 +344,29 @@ class TablesWindow(QWidget):
         self.table_widget.load_more_data()
 
 
+class PowerBIReportCountValues(QMainWindow):
+    def __init__(self, connection):
+        super().__init__()
+        self.connection = connection
+        self.setGeometry(100, 100, 1800, 900)
+        self.initUI()
+
+    def initUI(self):
+        self.webview = QWebEngineView(self)
+        self.setCentralWidget(self.webview)
+
+        # Set custom web engine page to handle SSL certificate errors
+        page = CustomWebEnginePage(self.webview)
+        self.webview.setPage(page)
+
+        # URL of the Power BI report
+        report_url = "https://app.powerbi.com/groups/me/reports/a202ae3c-3b0d-4c76-a8d8-71fbe0072101/ReportSectionfd2a5a13900278aa8244?experience=power-bi"
+
+        # Load the Power BI report in the QWebEngineView
+        self.webview.load(QUrl(report_url))
+
+
+
 class PowerLikeBIApp(QMainWindow):
     def __init__(self, connection):
         super().__init__()
@@ -355,6 +390,7 @@ class PowerLikeBIApp(QMainWindow):
         <html lang="en">
         <head>
         <meta charset="UTF-8">
+        <h1 style="text-align:center; color: #44244c;">Список підключених станцій</h1>
             <style>
                 body {{
                     font-family: Arial, sans-serif;
@@ -418,7 +454,7 @@ class PowerLikeBIApp(QMainWindow):
         layout.addLayout(button_layout)
 
         self.setGeometry(100, 100, 800, 600)
-        self.setWindowTitle('HTML Viewer')
+        self.setWindowTitle('Звіт')
 
     def printToPdf(self, html_content):
         # Создаем QTextDocument из HTML-кода
