@@ -1,18 +1,104 @@
-import os
-
-import pandas as pd
 from PyQt5.QtGui import QTextDocument
-from PyQt5.QtPrintSupport import QPrinter, QPrintDialog, QPrintPreviewDialog
+from PyQt5.QtPrintSupport import QPrinter, QPrintPreviewDialog
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QComboBox, QTableWidget, QTableWidgetItem, QHeaderView, \
-    QDesktopWidget, QPushButton, QMainWindow, QFileDialog, QHBoxLayout
+from PyQt5.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QComboBox,
+    QTableWidget,
+    QTableWidgetItem,
+    QHeaderView,
+    QDesktopWidget,
+    QPushButton,
+    QMainWindow,
+    QFileDialog,
+    QHBoxLayout,
+    QGridLayout,
+    QDateEdit,
+    QSizePolicy
+)
 from PyQt5.QtCore import Qt, QUrl
-from PyQt5 import QtGui, QtPrintSupport
+from PyQt5 import QtGui
 import pdfkit
-import plotly.express as px
-import plotly.graph_objects as go
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+
+default_for_combobox = """
+    QComboBox {
+        background-color: #2E2E2E;
+        color: #FFFFFF;
+        border: 1px solid #555555;
+        padding: 5px;
+        font-size: 16px;
+    }
+    QComboBox QAbstractItemView {
+        background-color: #2E2E2E;
+        color: #FFFFFF;
+        selection-background-color: #7a506f; 
+    }
+    QComboBox QAbstractItemView::item {
+        background-color: #2E2E2E;
+        color: #FFFFFF;
+    }
+    QComboBox QAbstractItemView::item:hover {
+        background-color: #7a506f; 
+    }
+    QComboBox::item:selected {
+        background-color: #4CAF50;
+    }
+    QComboBox::hover
+    {
+    background-color: purple;
+    }
+"""
+
+default_for_buttons = '''
+    QPushButton {
+        background-color: #732370;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 15px;
+        font-size: 14px;
+        box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5); /* Додайте тінь */
+    }
+    QPushButton:hover {
+        background-color: #9551a6;
+
+        }
+    QPushButton:pressed {
+        background-color: #43185d;  
+        border: 2px solid #9551a6;  
+    }
+    '''
+
+default_for_datetime = """
+    QDateEdit {
+        background-color: #2E2E2E;
+        color: #FFFFFF;
+        border: 1px solid #555555;
+        padding: 5px;
+        font-size: 16px;
+    }
+    QDateEdit QAbstractItemView {
+        background-color: #2E2E2E;
+        color: #FFFFFF;
+        selection-background-color: #7a506f; 
+    }
+    QDateEdit QAbstractItemView::item {
+        background-color: #2E2E2E;
+        color: #FFFFFF;
+    }
+    QDateEdit QAbstractItemView::item:hover {
+        background-color: #7a506f; 
+    }
+    QDateEdit::item:selected {
+        background-color: #4CAF50;
+    }
+    QDateEdit::hover
+    {
+    background-color: purple;
+    }
+"""
 
 table_translation_dict = {
     "mqtt_server": "Сервер MQTT",
@@ -166,6 +252,11 @@ class TablesWindow(QWidget):
         y = int((screen.height() - window_size.height()) // 3)
         self.move(x, y)
 
+        self.power_bi_app_first = PowerBIApp_first(connection)
+        self.power_bi_app_first_graphic = PowerBIApp_first_graphic(connection)
+        self.power_bi_app_second = PowerBIApp_second(connection)
+        self.power_like_bi_app = PowerLikeBIApp(connection)
+
         cursor = connection.cursor()
         sql_query = "SELECT tablename FROM pg_tables WHERE schemaname='public';"
         cursor.execute(sql_query)
@@ -173,106 +264,64 @@ class TablesWindow(QWidget):
 
         self.table_names = [table_translation_dict.get(name[0]) for name in names]
 
-        layout = QVBoxLayout(self)
+        layout = QGridLayout(self)
         layout.setAlignment(Qt.AlignTop)
-
-        default_for_combobox = """
-            QComboBox {
-                background-color: #2E2E2E;
-                color: #FFFFFF;
-                border: 1px solid #555555;
-                padding: 5px;
-                font-size: 16px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #2E2E2E;
-                color: #FFFFFF;
-                selection-background-color: #7a506f; 
-            }
-            QComboBox QAbstractItemView::item {
-                background-color: #2E2E2E;
-                color: #FFFFFF;
-            }
-            QComboBox QAbstractItemView::item:hover {
-                background-color: #7a506f; 
-            }
-            QComboBox::item:selected {
-                background-color: #4CAF50;
-            }
-            QComboBox::hover
-            {
-            background-color: purple;
-            }
-        """
-
-        default_for_buttons = '''
-                    QPushButton {
-                        background-color: #732370;
-                        color: white;
-                        padding: 10px 20px;
-                        border-radius: 15px;
-                        font-size: 14px;
-                        box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5); /* Додайте тінь */
-                    }
-                    QPushButton:hover {
-                        background-color: #9551a6;
-
-                        }
-                    QPushButton:pressed {
-                        background-color: #43185d;  
-                        border: 2px solid #9551a6;  
-                    }
-                    '''
 
         self.table_combobox = QComboBox(self)
         self.table_combobox.addItems(self.table_names)
         self.table_combobox.setStyleSheet(default_for_combobox)
         self.table_combobox.setFixedWidth(200)
         self.table_combobox.currentIndexChanged.connect(self.on_combobox_change)
-        layout.addWidget(self.table_combobox)
+        layout.addWidget(self.table_combobox, 0, 0, 1, 2)
 
         self.table_widget = LazyLoadTableWidget(connection, self)
-        layout.addWidget(self.table_widget)
+        layout.addWidget(self.table_widget, 1, 0, 1, 2)
+
+        self.report_like_BI_button = QPushButton('Звіт з можливістю друкувати та ковертувати в pdf', self)
+        self.report_like_BI_button.clicked.connect(self.report_like_bi_function)
+        self.report_like_BI_button.setStyleSheet(default_for_buttons)
+        layout.addWidget(self.report_like_BI_button, 2, 0)
+
+        self.report_BI_button = QPushButton('PowerBI Звіт', self)
+        self.report_BI_button.clicked.connect(self.report_bi_function)
+        self.report_BI_button.setStyleSheet(default_for_buttons)
+        layout.addWidget(self.report_BI_button, 2, 1)
+
+        self.connected_stations_without_dublicate_button = QPushButton('PowerBI Звіт з графіком', self)
+        self.connected_stations_without_dublicate_button.clicked.connect(self.report_bi_second_function)
+        self.connected_stations_without_dublicate_button.setStyleSheet(default_for_buttons)
+        layout.addWidget(self.connected_stations_without_dublicate_button, 3, 0)
+
+        self.first_graphic_button = QPushButton('Звіт з графіком', self)
+        self.first_graphic_button.clicked.connect(self.report_graphic_like_bi_function)
+        self.first_graphic_button.setStyleSheet(default_for_buttons)
+        layout.addWidget(self.first_graphic_button, 3, 1)
+
         self.setLayout(layout)
 
-        self.power_bi_app_first = PowerBIApp_first(connection)
-        self.power_bi_app_first_graphic = PowerBIApp_first_graphic(connection)
-        self.power_bi_app_second = PowerBIApp_second(connection)
-        self.power_like_bi_app = PowerLikeBIApp(connection)
+    def report_bi_function(self) -> None:
+        try:
+            self.power_bi_app_first.show()
+        except Exception as e:
+            print(f"Error in report_BI_function: {e}")
 
-        self.report_like_BI_button = QPushButton('Показати', self)
-        layout.addWidget(self.report_like_BI_button)
-        self.report_like_BI_button.clicked.connect(self.report_like_BI_function)
-        self.report_like_BI_button.setStyleSheet(default_for_buttons)
+    def report_graphic_like_bi_function(self) -> None:
+        try:
+            self.power_bi_app_first_graphic.show()
+        except Exception as e:
+            print(f"Error in report_graphic_Like_BI_function: {e}")
 
-        self.report_BI_button = QPushButton('Показати', self)
-        layout.addWidget(self.report_BI_button)
-        self.report_BI_button.clicked.connect(self.report_BI_function)
-        self.report_BI_button.setStyleSheet(default_for_buttons)
+    def report_bi_second_function(self) -> None:
+        try:
+            self.power_bi_app_second.show()
+        except Exception as e:
+            print(f"Error in report_BI_second_function: {e}")
 
-        self.connected_stations_without_dublicate_button = QPushButton('Показати', self)
-        layout.addWidget(self.connected_stations_without_dublicate_button)
-        self.connected_stations_without_dublicate_button.clicked.connect(self.report_BI_second_function)
-        self.connected_stations_without_dublicate_button.setStyleSheet(default_for_buttons)
-
-        self.first_graphic_button = QPushButton('Показати', self)
-        layout.addWidget(self.first_graphic_button)
-        self.first_graphic_button.clicked.connect(self.report_graphic_Like_BI_function)
-        self.first_graphic_button.setStyleSheet(default_for_buttons)
-
-    def report_BI_function(self):
-        self.power_bi_app_first.show()
-
-    def report_graphic_Like_BI_function(self):
-        self.power_bi_app_first_graphic.show()
-
-    def report_BI_second_function(self):
-        self.power_bi_app_second.show()
-
-    def report_like_BI_function(self):
-        self.power_like_bi_app.show()
-
-
+    def report_like_bi_function(self) -> None:
+        try:
+            self.power_like_bi_app.show()
+        except Exception as e:
+            print(f"Error in report_like_BI_function: {e}")
 
     def on_combobox_change(self):
         self.table_widget.clearContents()
@@ -281,11 +330,6 @@ class TablesWindow(QWidget):
         self.table_widget.load_more_data()
         self.table_widget.clear_table()  # Очищаємо таблицю перед завантаженням нових даних
         self.table_widget.load_more_data()
-
-    # selected_table = self.table_combobox.currentText()
-    # self.table_combobox.currentIndexChanged.connect(self.on_combobox_change)
-    # selected_table = self.table_combobox.currentText()
-    # self.table_combobox.currentIndexChanged.connect(self.on_combobox_change)
 
 
 class PowerLikeBIApp(QMainWindow):
@@ -360,46 +404,12 @@ class PowerLikeBIApp(QMainWindow):
 
         convert_button = QPushButton('Конвертувати в pdf', self)
         convert_button.clicked.connect(lambda: self.convertToPdf(html_content))
-        convert_button.setStyleSheet('''
-                    QPushButton {
-                        background-color: #732370;
-                        color: white;
-                        padding: 10px 20px;
-                        border-radius: 15px;
-                        font-size: 14px;
-                        box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5); /* Додайте тінь */
-                    }
-                    QPushButton:hover {
-                        background-color: #9551a6;
-
-                        }
-                    QPushButton:pressed {
-                        background-color: #43185d;  
-                        border: 2px solid #9551a6;  
-                    }
-                    ''')
+        convert_button.setStyleSheet(default_for_buttons)
         # layout.addWidget(convert_button)
 
         print_button = QPushButton('Роздрукувати', self)
         print_button.clicked.connect(lambda: self.printToPdf(html_content))
-        print_button.setStyleSheet('''
-            QPushButton {
-                background-color: #732370;
-                color: white;
-                padding: 10px 20px;
-                border-radius: 15px;
-                font-size: 14px;
-                box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.5); /* Додайте тінь */
-            }
-            QPushButton:hover {
-                background-color: #9551a6;
-
-                }
-            QPushButton:pressed {
-                background-color: #43185d;  
-                border: 2px solid #9551a6;  
-            }
-            ''')
+        print_button.setStyleSheet(default_for_buttons)
         # layout.addWidget(print_button)
 
         button_layout = QHBoxLayout()
@@ -429,7 +439,6 @@ class PowerLikeBIApp(QMainWindow):
         # Отображаем содержимое в превью
         document.print_(printer)
 
-
     def convertToPdf(self, html_content):
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getSaveFileName(self, "Зберегти як PDF", "", "PDF Files (*.pdf);;All Files (*)",
@@ -450,7 +459,7 @@ class PowerBIApp_second(QMainWindow):
     def __init__(self, connection):
         super().__init__()
         self.setWindowTitle('Power BI Report')
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, 1200, 800)
         self.initUI()
 
     def initUI(self):
@@ -464,7 +473,6 @@ class PowerBIApp_second(QMainWindow):
         # URL of the Power BI report
         report_url = "https://app.powerbi.com/groups/me/reports/3afd1bfa-a43c-42a6-90dd-b6c284878b1e/ReportSection?ctid=b42ffd57-19ac-4d2f-867f-e971c16b5159&experience=power-bi"
 
-
         # Load the Power BI report in the QWebEngineView
         self.webview.load(QUrl(report_url))
 
@@ -473,7 +481,7 @@ class PowerBIApp_first(QMainWindow):
     def __init__(self, connection):
         super().__init__()
         self.setWindowTitle('Power BI Report')
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, 1200, 800)
         self.connection = connection
         self.initUI()
 
@@ -481,14 +489,11 @@ class PowerBIApp_first(QMainWindow):
         self.webview = QWebEngineView(self)
         self.setCentralWidget(self.webview)
 
-        # Set custom web engine page to handle SSL certificate errors
         page = CustomWebEnginePage(self.webview)
         self.webview.setPage(page)
 
-        # URL of the Power BI report
         report_url = "https://app.powerbi.com/groups/me/reports/9abc14ba-e6cb-4f5e-9507-6fc776b81356/ReportSection?ctid=b42ffd57-19ac-4d2f-867f-e971c16b5159&pbi_source=shareVisual&visual=4872a1397275ad62d5d6&height=503.45&width=581.20&bookmarkGuid=b6ef4b18-ac65-423f-9b93-f8e5451ba06c"
 
-        # Load the Power BI report in the QWebEngineView
         self.webview.load(QUrl(report_url))
 
 
@@ -496,97 +501,84 @@ class PowerBIApp_first_graphic(QMainWindow):
     def __init__(self, connection):
         super().__init__()
         self.setWindowTitle('Power BI Report')
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, 1500, 800)
         self.connection = connection
 
-        # Створюємо головний контейнер для розміщення елементів у вікні
         main_layout = QVBoxLayout()
 
-        # Додаємо QComboBox
+        date_layout = QHBoxLayout()
+
+        self.start_date_edit = QDateEdit()
+        self.start_date_edit.setStyleSheet(default_for_datetime)
+        date_layout.addWidget(self.start_date_edit, stretch=1)
+        self.start_date_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        self.end_date_edit = QDateEdit()
+        self.end_date_edit.setStyleSheet(default_for_datetime)
+        date_layout.addWidget(self.end_date_edit, stretch=1)
+        self.end_date_edit.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+
+        main_layout.addLayout(date_layout)
+
         self.comboBox = QComboBox()
-        self.comboBox.currentIndexChanged.connect(self.handle_combobox_change)
-        self.comboBox.setStyleSheet("""
-            QComboBox {
-                background-color: #2E2E2E;
-                color: #FFFFFF;
-                border: 1px solid #555555;
-                padding: 5px;
-                font-size: 16px;
-            }
-            QComboBox QAbstractItemView {
-                background-color: #2E2E2E;
-                color: #FFFFFF;
-                selection-background-color: #7a506f; 
-            }
-            QComboBox QAbstractItemView::item {
-                background-color: #2E2E2E;
-                color: #FFFFFF;
-            }
-            QComboBox QAbstractItemView::item:hover {
-                background-color: #7a506f; 
-            }
-            QComboBox::item:selected {
-                background-color: #4CAF50;
-            }
-            QComboBox::hover
-            {
-            background-color: purple;
-            }
-        """)
+        self.comboBox.setStyleSheet(default_for_combobox)
         main_layout.addWidget(self.comboBox)
 
-        # Створюємо Figure та встановлюємо його розміри та стиль графіку
+        self.first_graphic_button = QPushButton('Показати', self)
+        main_layout.addWidget(self.first_graphic_button)
+        self.first_graphic_button.clicked.connect(self.handle_combobox_change)
+        self.first_graphic_button.setStyleSheet(default_for_buttons)
+
         self.figure, self.ax = plt.subplots(figsize=(5, 4))
         self.canvas = FigureCanvas(self.figure)
         main_layout.addWidget(self.canvas)
 
-        # Створюємо центральний віджет та встановлюємо його головний контейнер
         central_widget = QWidget()
         central_widget.setLayout(main_layout)
         self.setCentralWidget(central_widget)
 
-        # Викликаємо метод для заповнення QComboBox початковими даними
         self.populate_combobox()
 
     def populate_combobox(self):
         cursor = self.connection.cursor()
         sql_query_db_names = "SELECT DISTINCT Адреса FROM connected_stations_without_dublicate"
         cursor.execute(sql_query_db_names)
-        adress_name = cursor.fetchall()
+        address_name = cursor.fetchall()
 
-        adress_names = [list(name)[0] for name in adress_name]
-        for name in adress_names:
-            self.comboBox.addItem(name)
+        address_names = [list(name)[0] for name in address_name]
+        self.comboBox.addItems(address_names)
 
     def handle_combobox_change(self):
         selected_address = self.comboBox.currentText()
 
         cursor = self.connection.cursor()
-        sql_query = f"SELECT \"Вимір\", MIN(\"Величина\"), MAX(\"Величина\"), AVG(\"Величина\") FROM station_measurment_time_view WHERE \"Адреса\" = '{selected_address}' GROUP BY \"Вимір\""
-        cursor.execute(sql_query)
+        sql_query = """
+            SELECT "Вимір", MIN("Величина"), MAX("Величина"), AVG("Величина")
+            FROM station_measurment_time_view
+            WHERE "Адреса" = %s AND "Дата" BETWEEN %s AND %s
+            GROUP BY "Вимір"
+        """
+        start_date = self.start_date_edit.date().toString("yyyy-MM-dd 00:00:00+03")
+        end_date = self.end_date_edit.date().toString("yyyy-MM-dd 23:59:59+03")
+
+        cursor.execute(sql_query, (selected_address, start_date, end_date))
         results = cursor.fetchall()
-        # Розділіть результати на назви величин, мінімальні, максимальні та середні значення
+
         measurement_names = [row[0] for row in results]
-        # print(measurement_names)
         min_values = [row[1] for row in results]
         max_values = [row[2] for row in results]
         avg_values = [row[3] for row in results]
-        # print(max_values)
-        # print(min_values)
-        # print(avg_values)
 
-        # Очистимо попередні дані з графіку та відобразимо нові дані
         self.ax.clear()
 
-        # Побудова графіку для кожної величини
         for i, name in enumerate(measurement_names):
             min_val = min_values[i]
             max_val = max_values[i]
             avg_val = avg_values[i]
 
-            self.ax.barh(f"{name} (min)", min_val, color='r', label='Мінімальне значення')
-            self.ax.barh(f"{name} (max)", max_val, color='g', left=0, label='Максимальне значення')
-            self.ax.barh(f"{name} (avg)", avg_val, color='b', left=0, label='Середнє значення')
+            self.ax.barh(f"{name}(min)", min_val, color='r')
+            self.ax.barh(f"{name}(max)", max_val, color='b', left=0)
+            self.ax.barh(f"{name}(avg)", avg_val, color='g', left=0)
 
         self.ax.set_xlabel('Значення')
         self.ax.set_ylabel('Величина вимірювання')
@@ -594,5 +586,4 @@ class PowerBIApp_first_graphic(QMainWindow):
         self.ax.legend()
         self.ax.grid(True)
 
-        # Оновимо графік на віджеті FigureCanvas
         self.canvas.draw()
