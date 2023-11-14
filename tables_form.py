@@ -238,102 +238,169 @@ class LazyLoadTableWidget(QTableWidget):
 
 
 class TablesWindow(QWidget):
-    def __init__(self, connection):
+    def __init__(self, connection, login):
         super().__init__()
         self.power_bi_app = None
         self.setWindowTitle('Засоби монітору якості повітря')
         self.setGeometry(0, 0, 1000, 800)
         self.setStyleSheet("background-color: #121212; color: #ffffff;")
         self.connection = connection
-
+        self.login = login
         screen = QDesktopWidget().screenGeometry()
         window_size = self.geometry()
         x = int((screen.width() - window_size.width()) // 2)
         y = int((screen.height() - window_size.height()) // 3)
         self.move(x, y)
 
-        self.power_bi_app_first = PowerBIApp_first(connection)
-        self.power_bi_app_first_graphic = PowerBIApp_first_graphic(connection)
-        self.power_bi_app_second = PowerBIApp_second(connection)
-        self.power_like_bi_app = PowerLikeBIApp(connection)
-        self.power_bi_report_count_values = PowerBIReportCountValues(connection)
+        if self.login == "access_tables":
+            cursor = connection.cursor()
+            sql_query = "SELECT tablename FROM pg_tables WHERE schemaname='public';"
+            cursor.execute(sql_query)
+            names = cursor.fetchall()
 
-        cursor = connection.cursor()
-        sql_query = "SELECT tablename FROM pg_tables WHERE schemaname='public';"
-        cursor.execute(sql_query)
-        names = cursor.fetchall()
+            self.table_names = [table_translation_dict.get(name[0]) for name in names]
 
-        self.table_names = [table_translation_dict.get(name[0]) for name in names]
+            layout = QGridLayout(self)
+            layout.setAlignment(Qt.AlignTop)
 
-        layout = QGridLayout(self)
-        layout.setAlignment(Qt.AlignTop)
+            self.table_combobox = QComboBox(self)
+            self.table_combobox.addItems(self.table_names)
+            self.table_combobox.setStyleSheet(default_for_combobox)
+            self.table_combobox.setFixedWidth(200)
+            self.table_combobox.currentIndexChanged.connect(self.on_combobox_change)
+            layout.addWidget(self.table_combobox, 0, 0, 1, 2)
 
-        self.table_combobox = QComboBox(self)
-        self.table_combobox.addItems(self.table_names)
-        self.table_combobox.setStyleSheet(default_for_combobox)
-        self.table_combobox.setFixedWidth(200)
-        self.table_combobox.currentIndexChanged.connect(self.on_combobox_change)
-        layout.addWidget(self.table_combobox, 0, 0, 1, 2)
+            self.table_widget = LazyLoadTableWidget(connection, self)
+            layout.addWidget(self.table_widget, 1, 0, 1, 2)
 
-        self.table_widget = LazyLoadTableWidget(connection, self)
-        layout.addWidget(self.table_widget, 1, 0, 1, 2)
+        elif self.login == "postgres":
 
-        self.report_like_BI_button = QPushButton('Звіт писок підключених станцій з можливістю друкувати та ковертувати в pdf', self)
-        self.report_like_BI_button.clicked.connect(self.report_like_bi_function)
-        self.report_like_BI_button.setStyleSheet(default_for_buttons)
-        layout.addWidget(self.report_like_BI_button, 2, 0)
+            cursor = connection.cursor()
+            sql_query = "SELECT tablename FROM pg_tables WHERE schemaname='public';"
+            cursor.execute(sql_query)
+            names = cursor.fetchall()
 
-        self.report_BI_button = QPushButton('Список підключених станцій PowerBI', self)
-        self.report_BI_button.clicked.connect(self.report_bi_function)
-        self.report_BI_button.setStyleSheet(default_for_buttons)
-        layout.addWidget(self.report_BI_button, 2, 1)
+            self.table_names = [table_translation_dict.get(name[0]) for name in names]
 
-        self.connected_stations_without_dublicate_button = QPushButton('Результати вимірювань станції за часовий період PowerBI', self)
-        self.connected_stations_without_dublicate_button.clicked.connect(self.report_bi_second_function)
-        self.connected_stations_without_dublicate_button.setStyleSheet(default_for_buttons)
-        layout.addWidget(self.connected_stations_without_dublicate_button, 3, 0)
+            layout = QGridLayout(self)
+            layout.setAlignment(Qt.AlignTop)
 
-        self.first_graphic_button = QPushButton('Результати вимірювань станції за часовий період', self)
-        self.first_graphic_button.clicked.connect(self.report_graphic_like_bi_function)
-        self.first_graphic_button.setStyleSheet(default_for_buttons)
-        layout.addWidget(self.first_graphic_button, 3, 1)
+            self.table_combobox = QComboBox(self)
+            self.table_combobox.addItems(self.table_names)
+            self.table_combobox.setStyleSheet(default_for_combobox)
+            self.table_combobox.setFixedWidth(200)
+            self.table_combobox.currentIndexChanged.connect(self.on_combobox_change)
+            layout.addWidget(self.table_combobox, 0, 0, 1, 2)
 
-        self.count_values_view_button = QPushButton('Графічне зображення отриманих результатів', self)
-        self.count_values_view_button.clicked.connect(self.report_count_values_function)
-        self.count_values_view_button.setStyleSheet(default_for_buttons)
-        layout.addWidget(self.count_values_view_button, 4, 0, 1, 2)
+            self.table_widget = LazyLoadTableWidget(connection, self)
+            layout.addWidget(self.table_widget, 1, 0, 1, 2)
+
+            self.power_bi_app_first = PowerBIApp_first(connection)
+            self.power_bi_app_first_graphic = PowerBIApp_first_graphic(connection)
+            self.power_bi_app_second = PowerBIApp_second(connection)
+            self.power_like_bi_app = PowerLikeBIApp(connection)
+            self.power_bi_report_count_values = PowerBIReportCountValues(connection)
+
+            self.report_like_BI_button = QPushButton(
+                'Звіт писок підключених станцій з можливістю друкувати та ковертувати в pdf', self)
+            self.report_like_BI_button.clicked.connect(self.report_like_bi_function)
+            self.report_like_BI_button.setStyleSheet(default_for_buttons)
+            layout.addWidget(self.report_like_BI_button, 2, 0)
+
+            self.report_BI_button = QPushButton('Список підключених станцій PowerBI', self)
+            self.report_BI_button.clicked.connect(self.report_bi_function)
+            self.report_BI_button.setStyleSheet(default_for_buttons)
+            layout.addWidget(self.report_BI_button, 2, 1)
+
+            self.connected_stations_without_dublicate_button = QPushButton(
+                'Результати вимірювань станції за часовий період PowerBI', self)
+            self.connected_stations_without_dublicate_button.clicked.connect(self.report_bi_second_function)
+            self.connected_stations_without_dublicate_button.setStyleSheet(default_for_buttons)
+            layout.addWidget(self.connected_stations_without_dublicate_button, 3, 0)
+
+            self.first_graphic_button = QPushButton('Результати вимірювань станції за часовий період', self)
+            self.first_graphic_button.clicked.connect(self.report_graphic_like_bi_function)
+            self.first_graphic_button.setStyleSheet(default_for_buttons)
+            layout.addWidget(self.first_graphic_button, 3, 1)
+
+            self.count_values_view_button = QPushButton('Графічне зображення отриманих результатів', self)
+            self.count_values_view_button.clicked.connect(self.report_count_values_function)
+            self.count_values_view_button.setStyleSheet(default_for_buttons)
+            layout.addWidget(self.count_values_view_button, 4, 0, 1, 2)
+
+        elif self.login == "access_reports":
+            layout = QGridLayout(self)
+            layout.setAlignment(Qt.AlignTop)
+
+            self.power_bi_app_first = PowerBIApp_first(connection)
+            self.power_bi_app_first_graphic = PowerBIApp_first_graphic(connection)
+            self.power_bi_app_second = PowerBIApp_second(connection)
+            self.power_like_bi_app = PowerLikeBIApp(connection)
+            self.power_bi_report_count_values = PowerBIReportCountValues(connection)
+
+            self.report_like_BI_button = QPushButton(
+                'Звіт писок підключених станцій з можливістю друкувати та ковертувати в pdf', self)
+            self.report_like_BI_button.clicked.connect(self.report_like_bi_function)
+            self.report_like_BI_button.setStyleSheet(default_for_buttons)
+            layout.addWidget(self.report_like_BI_button, 2, 0)
+
+            self.report_BI_button = QPushButton('Список підключених станцій PowerBI', self)
+            self.report_BI_button.clicked.connect(self.report_bi_function)
+            self.report_BI_button.setStyleSheet(default_for_buttons)
+            layout.addWidget(self.report_BI_button, 2, 1)
+
+            self.connected_stations_without_dublicate_button = QPushButton(
+                'Результати вимірювань станції за часовий період PowerBI', self)
+            self.connected_stations_without_dublicate_button.clicked.connect(self.report_bi_second_function)
+            self.connected_stations_without_dublicate_button.setStyleSheet(default_for_buttons)
+            layout.addWidget(self.connected_stations_without_dublicate_button, 3, 0)
+
+            self.first_graphic_button = QPushButton('Результати вимірювань станції за часовий період', self)
+            self.first_graphic_button.clicked.connect(self.report_graphic_like_bi_function)
+            self.first_graphic_button.setStyleSheet(default_for_buttons)
+            layout.addWidget(self.first_graphic_button, 3, 1)
+
+            self.count_values_view_button = QPushButton('Графічне зображення отриманих результатів', self)
+            self.count_values_view_button.clicked.connect(self.report_count_values_function)
+            self.count_values_view_button.setStyleSheet(default_for_buttons)
+            layout.addWidget(self.count_values_view_button, 4, 0, 1, 2)
 
         self.setLayout(layout)
 
     def report_count_values_function(self) -> None:
-        try:
-            self.power_bi_report_count_values.show()
-        except Exception as e:
-            print(f"Error in report_BI_function: {e}")
+        if self.login != 'access_tables':
+            try:
+                self.power_bi_report_count_values.show()
+            except Exception as e:
+                print(f"Error in report_BI_function: {e}")
 
     def report_bi_function(self) -> None:
-        try:
-            self.power_bi_app_first.show()
-        except Exception as e:
-            print(f"Error in report_BI_function: {e}")
+        if self.login != 'access_tables':
+            try:
+                self.power_bi_app_first.show()
+            except Exception as e:
+                print(f"Error in report_BI_function: {e}")
 
     def report_graphic_like_bi_function(self) -> None:
-        try:
-            self.power_bi_app_first_graphic.show()
-        except Exception as e:
-            print(f"Error in report_graphic_Like_BI_function: {e}")
+        if self.login != 'access_tables':
+            try:
+                self.power_bi_app_first_graphic.show()
+            except Exception as e:
+                print(f"Error in report_graphic_Like_BI_function: {e}")
 
     def report_bi_second_function(self) -> None:
-        try:
-            self.power_bi_app_second.show()
-        except Exception as e:
-            print(f"Error in report_BI_second_function: {e}")
+        if self.login != 'access_tables':
+            try:
+                self.power_bi_app_second.show()
+            except Exception as e:
+                print(f"Error in report_BI_second_function: {e}")
 
     def report_like_bi_function(self) -> None:
-        try:
-            self.power_like_bi_app.show()
-        except Exception as e:
-            print(f"Error in report_like_BI_function: {e}")
+        if self.login != 'access_tables':
+            try:
+                self.power_like_bi_app.show()
+            except Exception as e:
+                print(f"Error in report_like_BI_function: {e}")
 
     def on_combobox_change(self):
         self.table_widget.clearContents()
@@ -457,22 +524,18 @@ class PowerLikeBIApp(QMainWindow):
         self.setWindowTitle('Звіт')
 
     def printToPdf(self, html_content):
-        # Создаем QTextDocument из HTML-кода
         document = QTextDocument()
         document.setHtml(html_content)
 
-        # Создаем принтер
         printer = QPrinter()
         printer.setOutputFormat(QPrinter.PdfFormat)
 
-        # Показываем превью перед печатью
         preview = QPrintPreviewDialog(printer)
         preview.paintRequested.connect(
             lambda: self.printPreview(document, printer))  # Подключаем слот для отображения содержимого
         preview.exec_()
 
     def printPreview(self, document, printer):
-        # Отображаем содержимое в превью
         document.print_(printer)
 
     def convertToPdf(self, html_content):

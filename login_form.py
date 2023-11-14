@@ -84,13 +84,14 @@ class AuthWindow(QWidget):
                                           database="MonitorAir")
             cursor = connection.cursor()
 
-            self.tables_window = TablesWindow(connection)  # Создаем объект TablesWindow
+            self.tables_window = TablesWindow(connection=connection, login=login)  # Создаем объект TablesWindow
             self.tables_window.show()
             self.close()
         except psycopg2.Error as e:
             alert = QMessageBox()
             alert.setText("email або пароль вказано неправильно")
-            # result = alert.exec_()
+            result = alert.exec_()
+            print(f'Error: {e}')
 
 
 if __name__ == '__main__':
